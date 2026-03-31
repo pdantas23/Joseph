@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/philip/Desktop/RoyalHub/Landing Pages/Joseph/joseph_atelier/src -type f \\\\\\(-name *.js -o -name *.jsx -o -name *.ts -o -name *.tsx \\\\\\))"
+    ]
+  }
+}
