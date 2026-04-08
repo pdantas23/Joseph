@@ -8,6 +8,8 @@ import catalogRouter from "./features/catalog/catalogRoutes";
 
 const app = express();
 
+app.get("/ping", (_req, res) => res.send("pong"));
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
@@ -16,8 +18,6 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
-
-app.get("/ping", (_req, res) => res.json({ ok: true }));
 
 app.use("/auth",          authRouter);
 app.use("/api/products",  catalogRouter);
