@@ -17,8 +17,15 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
+app.get("/ping", (_req, res) => res.json({ ok: true }));
+
 app.use("/auth",          authRouter);
 app.use("/api/products",  catalogRouter);
+
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("[ERROR]", err?.message ?? err);
+  res.status(500).json({ error: err?.message ?? "Internal Server Error" });
+});
 
 const PORT = Number(process.env.PORT) || 3001;
 
