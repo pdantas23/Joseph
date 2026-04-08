@@ -11,33 +11,25 @@ const isProduction = process.env.NODE_ENV === "production";
 
 // ─── Helpers de cookie ────────────────────────────────────────────────────────
 
+const cookieDefaults = isProduction
+  ? { httpOnly: true, secure: true, sameSite: "none" as const, ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}), path: "/" }
+  : { httpOnly: true, secure: false, sameSite: "lax" as const, path: "/" };
+
 function setAuthCookies(res: any, session: any) {
   res.cookie(AUTH_COOKIE_ACCESS, session.access_token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
+    ...cookieDefaults,
     maxAge: session.expires_in * 1000,
   });
 
   res.cookie(AUTH_COOKIE_REFRESH, session.refresh_token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
+    ...cookieDefaults,
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 dias
   });
 }
 
 function clearAuthCookies(res: any) {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax" as const,
-    path: "/",
-  };
-  res.clearCookie(AUTH_COOKIE_ACCESS, cookieOptions);
-  res.clearCookie(AUTH_COOKIE_REFRESH, cookieOptions);
+  res.clearCookie(AUTH_COOKIE_ACCESS, cookieDefaults);
+  res.clearCookie(AUTH_COOKIE_REFRESH, cookieDefaults);
 }
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────────

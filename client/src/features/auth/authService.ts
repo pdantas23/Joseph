@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/api";
 import type { UserProfile } from "./authTypes";
 
 type SessionUser = {
@@ -22,7 +23,6 @@ type ServiceError = {
   message: string;
 };
 
-const API_URL = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL;
 
 async function safeReadJson(response: Response) {
   const contentType = response.headers.get("content-type") || "";
@@ -38,7 +38,7 @@ async function safeReadJson(response: Response) {
 }
 
 export async function signInWithPassword(email: string, password: string) {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -64,7 +64,7 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 export async function signOutLocal() {
-  const response = await fetch(`${API_URL}/auth/logout`, {
+  const response = await fetch(`${API_BASE_URL}/auth/logout`, {
     method: "POST",
     credentials: "include",
   });
@@ -93,7 +93,7 @@ export async function signOutLocal() {
 }
 
 export async function getCurrentSession() {
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: "GET",
     credentials: "include",
   });
@@ -121,7 +121,7 @@ export async function getCurrentSession() {
 }
 
 export async function getUserProfile(): Promise<UserProfile | null> {
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: "GET",
     credentials: "include",
   });
