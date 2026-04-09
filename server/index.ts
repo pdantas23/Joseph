@@ -1,3 +1,9 @@
+const app = express();
+
+app.get("/ping", (_req, res) => {
+  res.status(200).send("pong");
+});
+
 import "dotenv/config";
 import express from "express";
 import cookieParser from "cookie-parser";
@@ -6,7 +12,7 @@ import cors from "cors";
 import authRouter    from "./routes/authRoutes";
 import catalogRouter from "./features/catalog/catalogRoutes";
 
-const app = express();
+
 
 // 1. Logs de Debug (Para ver no Easypanel exatamente o que está chegando)
 app.use((req, _res, next) => {
