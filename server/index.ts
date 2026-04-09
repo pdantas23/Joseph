@@ -29,6 +29,6 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 
 const PORT = Number(process.env.PORT) || 3001;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
