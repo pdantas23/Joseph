@@ -12,23 +12,36 @@ const app = express();
 // 1. TRUST PROXY: Essencial para cookies funcionarem no Safari/HTTPS
 app.set("trust proxy", 1);
 
-// 2. CORS DINÂMICO: Aceita com e sem WWW
-const allowedOrigins = [
+// 2. CORS DINÂMICO: origens de produção (com e sem WWW) + as definidas em CORS_ORIGIN
+const defaultOrigins = [
   "https://josephatelier.com.br",
-  "https://www.josephatelier.com.br"
+  "https://www.josephatelier.com.br",
 ];
+
+// CORS_ORIGIN aceita múltiplas origens separadas por vírgula
+const envOrigins = (process.env.CORS_ORIGIN ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+const isDev = process.env.NODE_ENV !== "production";
+const localhostRegex = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS: Origem não permitida pelo servidor"));
-      }
+      // Requisições sem Origin (curl, same-origin, apps) → permite
+      if (!origin) return callback(null, true);
+      // Allowlist explícita
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Em desenvolvimento, libera qualquer localhost/127.0.0.1
+      if (isDev && localhostRegex.test(origin)) return callback(null, true);
+      // Recusa de forma limpa: sem header CORS e SEM lançar erro (evita 500)
+      return callback(null, false);
     },
     credentials: true,
-    optionsSuccessStatus: 200 // Resolve o erro de status 204 no Safari
+    optionsSuccessStatus: 200, // Resolve o erro de status 204 no Safari
   })
 );
 

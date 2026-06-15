@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import { useLocation, useSearch } from "wouter";
 import { listProducts } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
@@ -27,6 +28,62 @@ const PROMO_ITEMS = [
   { icon: QrCode, title: "5% OFF no Pix" },
 ] as const;
 
+// ─── Slider de faixa de preço (dual-thumb, paleta da marca) ─────────────────────
+function PriceRangeSlider({
+  lo,
+  hi,
+  ceil,
+  step,
+  onChange,
+}: {
+  lo: number;
+  hi: number;
+  ceil: number;
+  step: number;
+  onChange: (lo: number, hi: number) => void;
+}) {
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-light tabular-nums" style={{ color: C.brown }}>
+          R$ {formatPrice(lo)}
+        </span>
+        <span className="text-xs font-light tabular-nums" style={{ color: C.brown }}>
+          {hi >= ceil ? "Sem limite" : `R$ ${formatPrice(hi)}`}
+        </span>
+      </div>
+
+      <SliderPrimitive.Root
+        className="relative flex w-full touch-none select-none items-center py-2"
+        min={0}
+        max={ceil}
+        step={step}
+        value={[lo, hi]}
+        minStepsBetweenThumbs={1}
+        onValueChange={(v) => onChange(v[0], v[1])}
+      >
+        <SliderPrimitive.Track
+          className="relative h-1 w-full grow rounded-full"
+          style={{ backgroundColor: C.bege3 }}
+        >
+          <SliderPrimitive.Range
+            className="absolute h-full rounded-full"
+            style={{ backgroundColor: C.roseDark }}
+          />
+        </SliderPrimitive.Track>
+        {[0, 1].map((i) => (
+          <SliderPrimitive.Thumb
+            key={i}
+            aria-label={i === 0 ? "Preço mínimo" : "Preço máximo"}
+            className="block h-4 w-4 rounded-full border-2 bg-white shadow-sm outline-none transition hover:scale-110 focus-visible:ring-2"
+            style={{ borderColor: C.roseDark }}
+          />
+        ))}
+      </SliderPrimitive.Root>
+    </div>
+  );
+}
+
 export default function Catalog() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
@@ -37,6 +94,7 @@ export default function Catalog() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   // Filters
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -104,6 +162,24 @@ export default function Catalog() {
 
   const filtered = applyFilters(products);
 
+  // Faixa de preço (slider): teto dinâmico baseado no produto mais caro
+  const priceCeil = useMemo(() => {
+    const maxP = products.reduce((m, p) => Math.max(m, p.preco), 0);
+    if (maxP <= 0) return 1000;
+    const step = maxP > 1000 ? 100 : 50;
+    return Math.max(step, Math.ceil(maxP / step) * step);
+  }, [products]);
+
+  const priceStep = priceCeil > 1000 ? 10 : 5;
+  const precoLo = Math.min(Math.max(filterPrecoMin ? Number(filterPrecoMin) : 0, 0), priceCeil);
+  const precoHi = Math.min(filterPrecoMax ? Number(filterPrecoMax) : priceCeil, priceCeil);
+
+  function handlePriceChange(lo: number, hi: number) {
+    // lo no mínimo (0) ou hi no teto → limpa o filtro correspondente
+    setFilterPrecoMin(lo <= 0 ? "" : String(lo));
+    setFilterPrecoMax(hi >= priceCeil ? "" : String(hi));
+  }
+
   function openModal(product: Product) {
     setSelected(product);
     setGalleryIdx(0);
@@ -141,6 +217,31 @@ export default function Catalog() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, galleryIdx, allImages.length]);
+
+  // Bloqueia o scroll do fundo enquanto o modal de produto ou o de filtros estiver aberto
+  useEffect(() => {
+    if (!selected && !isMobileFiltersOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [selected, isMobileFiltersOpen]);
+
+  // Fecha o dropdown de filtros (desktop) ao clicar fora dele
+  useEffect(() => {
+    if (!showFilters) return;
+    function onDown(e: MouseEvent) {
+      const target = e.target as Element;
+      // Ignora cliques no popover de categoria (renderizado em portal pelo Radix)
+      if (target.closest("[data-radix-popper-content-wrapper]")) return;
+      if (filtersRef.current && !filtersRef.current.contains(target)) {
+        setShowFilters(false);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [showFilters]);
 
   function buildWhatsAppUrl(product: Product): string {
     const phone = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? "";
@@ -265,7 +366,7 @@ export default function Catalog() {
       </div>
 
       {/* ── MAIN ────────────────────────────────────────────────────────── */}
-      <main className="flex-1 px-4 sm:px-6 py-10 mx-auto w-full max-w-6xl">
+      <main className="flex-1 px-4 sm:px-6 pt-4 pb-10 mx-auto w-full max-w-6xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="flex w-full flex-row items-end gap-3">
 
@@ -306,7 +407,7 @@ export default function Catalog() {
               </div>
             </div>
 
-            <div className="relative shrink-0">
+            <div className="relative shrink-0" ref={filtersRef}>
               <button
                 onClick={() => {
                   if (window.innerWidth < 768) {
@@ -340,7 +441,7 @@ export default function Catalog() {
                   }}
                 >
                   <div
-                    className="px-4 py-3 border-b flex items-center justify-between"
+                    className="px-4 py-3 border-b flex items-center"
                     style={{ borderColor: C.bege3 }}
                   >
                     <span
@@ -349,21 +450,6 @@ export default function Catalog() {
                     >
                       Filtros
                     </span>
-
-                    {hasActiveFilters && (
-                      <button
-                        onClick={clearFilters}
-                        className="text-[9px] font-light tracking-[0.3em] uppercase transition hover:opacity-50"
-                        style={{
-                          color: C.brown,
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Limpar
-                      </button>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
@@ -473,49 +559,20 @@ export default function Catalog() {
                       </Popover>
                     </div>
 
-                    <div className="w-full">
+                    <div className="w-full sm:col-span-3">
                       <label
-                        className="block text-[9px] tracking-[0.35em] uppercase font-light mb-2"
+                        className="block text-[9px] tracking-[0.35em] uppercase font-light mb-3"
                         style={{ color: C.bege1 }}
                       >
-                        Preço mín.
+                        Faixa de preço
                       </label>
 
-                      <input
-                        type="number"
-                        value={filterPrecoMin}
-                        onChange={(e) => setFilterPrecoMin(e.target.value)}
-                        placeholder="R$ 0"
-                        className="w-full h-[38px] px-3 text-xs font-light outline-none"
-                        style={{
-                          border: `1px solid ${C.bege3}`,
-                          background: C.offwhite,
-                          color: C.brown,
-                          borderRadius: "1px",
-                        }}
-                      />
-                    </div>
-
-                    <div className="w-full">
-                      <label
-                        className="block text-[9px] tracking-[0.35em] uppercase font-light mb-2"
-                        style={{ color: C.bege1 }}
-                      >
-                        Preço máx.
-                      </label>
-
-                      <input
-                        type="number"
-                        value={filterPrecoMax}
-                        onChange={(e) => setFilterPrecoMax(e.target.value)}
-                        placeholder="Sem limite"
-                        className="w-full h-[38px] px-3 text-xs font-light outline-none"
-                        style={{
-                          border: `1px solid ${C.bege3}`,
-                          background: C.offwhite,
-                          color: C.brown,
-                          borderRadius: "1px",
-                        }}
+                      <PriceRangeSlider
+                        lo={precoLo}
+                        hi={precoHi}
+                        ceil={priceCeil}
+                        step={priceStep}
+                        onChange={handlePriceChange}
                       />
                     </div>
                   </div>
@@ -660,47 +717,18 @@ export default function Catalog() {
 
                       <div className="w-full">
                         <label
-                          className="block text-[9px] tracking-[0.35em] uppercase font-light mb-2"
+                          className="block text-[9px] tracking-[0.35em] uppercase font-light mb-3"
                           style={{ color: C.bege1 }}
                         >
-                          Preço mín.
+                          Faixa de preço
                         </label>
 
-                        <input
-                          type="number"
-                          value={filterPrecoMin}
-                          onChange={(e) => setFilterPrecoMin(e.target.value)}
-                          placeholder="R$ 0"
-                          className="w-full h-[40px] px-3 text-xs font-light outline-none"
-                          style={{
-                            border: `1px solid ${C.bege3}`,
-                            background: C.offwhite,
-                            color: C.brown,
-                            borderRadius: "1px",
-                          }}
-                        />
-                      </div>
-
-                      <div className="w-full">
-                        <label
-                          className="block text-[9px] tracking-[0.35em] uppercase font-light mb-2"
-                          style={{ color: C.bege1 }}
-                        >
-                          Preço máx.
-                        </label>
-
-                        <input
-                          type="number"
-                          value={filterPrecoMax}
-                          onChange={(e) => setFilterPrecoMax(e.target.value)}
-                          placeholder="Sem limite"
-                          className="w-full h-[40px] px-3 text-xs font-light outline-none"
-                          style={{
-                            border: `1px solid ${C.bege3}`,
-                            background: C.offwhite,
-                            color: C.brown,
-                            borderRadius: "1px",
-                          }}
+                        <PriceRangeSlider
+                          lo={precoLo}
+                          hi={precoHi}
+                          ceil={priceCeil}
+                          step={priceStep}
+                          onChange={handlePriceChange}
                         />
                       </div>
                     </div>
@@ -880,12 +908,14 @@ export default function Catalog() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-          onClick={closeModal}
+          onMouseDown={(e) => {
+            // Fecha apenas se o clique iniciou no próprio overlay (fora do conteúdo)
+            if (e.target === e.currentTarget) closeModal();
+          }}
         >
           <div
-            className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto bg-white"
+            className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white md:flex md:flex-row md:w-[92vw] md:max-w-[1040px] md:h-[88vh] md:overflow-hidden"
             style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.2)" }}
-            onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={closeModal}
@@ -900,13 +930,11 @@ export default function Catalog() {
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex justify-center pt-3 sm:hidden">
-              <div className="h-px w-8" style={{ backgroundColor: C.bege3 }} />
-            </div>
-
+            {/* ── Coluna esquerda: imagem ── */}
+            <div className="md:flex md:flex-col md:w-[58%] md:min-h-0">
             <div
-              className="relative overflow-hidden group"
-              style={{ aspectRatio: "4/3", backgroundColor: C.offwhite }}
+              className="relative overflow-hidden group aspect-[4/3] md:aspect-auto md:flex-1 md:min-h-0"
+              style={{ backgroundColor: C.offwhite }}
             >
               {allImages.length > 0 ? (
                 <img
@@ -981,7 +1009,7 @@ export default function Catalog() {
             </div>
 
             {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1">
+              <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 md:shrink-0">
                 {allImages.map((url, i) => (
                   <button
                     key={i}
@@ -998,8 +1026,10 @@ export default function Catalog() {
                 ))}
               </div>
             )}
+            </div>
 
-            <div className="px-6 pt-5 pb-7">
+            {/* ── Coluna direita: detalhes ── */}
+            <div className="px-6 pt-5 pb-7 md:w-[42%] md:overflow-y-auto md:min-h-0">
               <div className="flex items-start justify-between gap-4 mb-1">
                 <div className="flex-1">
                   {selected.categoria && (
@@ -1019,17 +1049,6 @@ export default function Catalog() {
                   </h2>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span
-                    className="text-xl font-light tabular-nums"
-                    style={{
-                      color: selected.promocao ? C.roseDark : C.brown,
-                      fontFamily: "'Georgia', serif",
-                    }}
-                  >
-                    R$ {formatPrice(selected.preco)}
-                  </span>
-                </div>
               </div>
 
               {selected.descricao && (
@@ -1037,6 +1056,17 @@ export default function Catalog() {
                   {selected.descricao}
                 </p>
               )}
+
+              {/* Preço abaixo da descrição */}
+              <p
+                className="mt-4 text-xl font-light tabular-nums"
+                style={{
+                  color: selected.promocao ? C.roseDark : C.brown,
+                  fontFamily: "'Georgia', serif",
+                }}
+              >
+                R$ {formatPrice(selected.preco)}
+              </p>
 
               <div className="my-5 h-px" style={{ backgroundColor: C.bege3 }} />
 
