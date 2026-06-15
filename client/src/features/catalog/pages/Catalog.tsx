@@ -128,10 +128,8 @@ export default function Catalog() {
   function buildWhatsAppUrl(product: Product): string {
     const phone = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? "";
     const number = phone.replace(/\D/g, "");
-    const imageUrl = product.imagem_url ?? (product.imagens?.[0]?.url ?? "");
 
     let message = `Olá! Tenho interesse na peça *${product.nome}*. Pode me passar mais informações?`;
-    if (imageUrl) message += `\n\n${imageUrl}`;
 
     return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
   }
@@ -808,12 +806,12 @@ export default function Catalog() {
       {/* ── MODAL ───────────────────────────────────────────────────────── */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
           onClick={closeModal}
         >
           <div
-            className="relative w-full sm:max-w-xl md:max-w-2xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto bg-white"
+            className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto bg-white"
             style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.2)" }}
             onClick={(e) => e.stopPropagation()}
           >

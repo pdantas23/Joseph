@@ -1,4 +1,4 @@
-// catalogApi.ts
+import { API_BASE_URL } from "@/lib/api";
 import type {
   Product,
   CreateProductPayload,
@@ -12,7 +12,7 @@ export async function uploadProductImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await fetch("/api/products/upload-image", {
+  const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -25,7 +25,7 @@ export async function uploadProductImage(file: File): Promise<string> {
 
 // ─── Remover imagem ───────────────────────────────────────────────────────────
 export async function deleteProductImage(path: string): Promise<void> {
-  const response = await fetch("/api/products/delete-image", {
+  const response = await fetch(`${API_BASE_URL}/api/products/delete-image`, {
     method: "DELETE",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -43,7 +43,7 @@ export async function listProducts(params: ListProductsParams = {}): Promise<Lis
   if (params.promocao !== undefined) query.set("promocao", String(params.promocao));
   if (params.ativo    !== undefined) query.set("ativo",    String(params.ativo));
 
-  const response = await fetch(`/api/products?${query.toString()}`, {
+  const response = await fetch(`${API_BASE_URL}/api/products?${query.toString()}`, {
     method: "GET",
     credentials: "include",
     headers: { Accept: "application/json" },
@@ -55,7 +55,7 @@ export async function listProducts(params: ListProductsParams = {}): Promise<Lis
 
 // ─── Criar produto ────────────────────────────────────────────────────────────
 export async function createProduct(payload: CreateProductPayload): Promise<Product> {
-  const response = await fetch("/api/products", {
+  const response = await fetch(`${API_BASE_URL}/api/products`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -69,7 +69,7 @@ export async function createProduct(payload: CreateProductPayload): Promise<Prod
 
 // ─── Atualizar produto ────────────────────────────────────────────────────────
 export async function updateProduct(id: string, payload: UpdateProductPayload): Promise<Product> {
-  const response = await fetch(`/api/products/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -83,7 +83,7 @@ export async function updateProduct(id: string, payload: UpdateProductPayload): 
 
 // ─── Excluir produto ──────────────────────────────────────────────────────────
 export async function deleteProduct(id: string): Promise<void> {
-  const response = await fetch(`/api/products/${id}`, {
+  const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
     method: "DELETE",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

@@ -1,5 +1,5 @@
 // ─── Roles ────────────────────────────────────────────────────────────────────
-export type AppRole = "admin" | "comercial";
+export type AppRole = "admin" | "comercial" | "marketing";
 
 // ─── Usuário autenticado (retorno do Supabase) ────────────────────────────────
 export type AuthUser = {

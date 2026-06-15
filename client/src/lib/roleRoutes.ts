@@ -6,6 +6,7 @@ import type { AppRole } from "@/features/auth/authTypes";
 const ROLE_DEFAULT_ROUTES: Record<AppRole, string> = {
   admin:     "/comercial",
   comercial: "/comercial",
+  marketing: "/marketing",
 };
 
 /**
