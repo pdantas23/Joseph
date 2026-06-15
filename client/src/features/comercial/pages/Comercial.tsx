@@ -10,6 +10,7 @@ import {
 } from "@/features/catalog/catalogApi";
 import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Star, CheckCircle2, ChevronDown } from "lucide-react";
 import type { Product, CreateProductPayload } from "@/features/catalog/catalogTypes";
+import { formatPrice } from "@/lib/utils";
 import { PRODUCT_CATEGORIES, CATEGORY_LABELS } from "@/features/catalog/catalogTypes";
 
 const C = {
@@ -398,7 +399,7 @@ export default function Comercial() {
                       )}
                     </div>
                     <p className="text-sm font-light mb-0.5" style={{ color: C.brown }}>
-                      R$ {product.preco.toFixed(2).replace(".", ",")}
+                      R$ {formatPrice(product.preco)}
                     </p>
                     {product.categoria && (
                       <p className="text-[11px] font-light tracking-wider uppercase" style={{ color: C.bege1 }}>

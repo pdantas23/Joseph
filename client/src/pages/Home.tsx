@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { listProducts } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
+import { formatPrice } from "@/lib/utils";
 import {
   ArrowRight,
   ChevronLeft,
@@ -447,7 +448,7 @@ export default function Home() {
                 fontFamily: "'Big Caslon', 'Georgia', serif",
               }}
             >
-              R$ {p?.preco.toFixed(2).replace(".", ",")}
+              R$ {p ? formatPrice(p.preco) : ""}
             </p>
 
             <button
@@ -714,7 +715,7 @@ export default function Home() {
                       className="text-xs font-light"
                       style={{ color: product.promocao ? C.roseDark : "#8A817B" }}
                     >
-                      R$ {product.preco.toFixed(2).replace(".", ",")}
+                      R$ {formatPrice(product.preco)}
                       {product.promocao && (
                         <span
                           className="ml-1 text-[9px] tracking-widest uppercase"
@@ -901,7 +902,7 @@ export default function Home() {
                     color: C.brown,
                   }}
                 >
-                  Visite o Atelier
+                  Visite a Loja
                 </h2>
 
                 <p

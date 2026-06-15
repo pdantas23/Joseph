@@ -3,6 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { listProducts } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
 import { ExternalLink, Copy, CheckCheck, TrendingUp, Package, Tag } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 
 const C = {
   brown:    "#333333",
@@ -32,7 +33,7 @@ function buildWhatsAppBlast(products: Product[]): string {
   if (destaques.length > 0) {
     text += "🌸 *Peças em destaque:*\n";
     for (const p of destaques.slice(0, 5)) {
-      text += `• ${p.nome} — R$ ${p.preco.toFixed(2).replace(".", ",")}\n`;
+      text += `• ${p.nome} — R$ ${formatPrice(p.preco)}\n`;
     }
     text += "\n";
   }
@@ -223,7 +224,7 @@ export default function Marketing() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-light truncate" style={{ color: C.brown }}>{product.nome}</p>
                     <p className="text-xs font-light" style={{ color: product.preco ? C.roseDark : C.bege1 }}>
-                      R$ {product.preco.toFixed(2).replace(".", ",")}
+                      R$ {formatPrice(product.preco)}
                     </p>
                   </div>
 
@@ -270,7 +271,7 @@ export default function Marketing() {
                   <div className="p-3 flex flex-col gap-1.5">
                     <p className="text-xs font-light line-clamp-2 leading-snug" style={{ color: C.brown }}>{product.nome}</p>
                     <p className="text-xs font-light" style={{ color: C.bege1 }}>
-                      R$ {product.preco.toFixed(2).replace(".", ",")}
+                      R$ {formatPrice(product.preco)}
                     </p>
                     <div className="pt-1">
                       <CopyButton text={buildProductLink(product.id)} label="Copiar link" />

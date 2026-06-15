@@ -3,8 +3,9 @@ import { useLocation, useSearch } from "wouter";
 import { listProducts } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
 import { PRODUCT_CATEGORIES, CATEGORY_LABELS } from "@/features/catalog/catalogTypes";
-import { X, ChevronLeft, ChevronRight, ChevronDown, Search, SlidersHorizontal } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ChevronDown, Search, SlidersHorizontal, Gift, CreditCard, Truck, QrCode } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatPrice } from "@/lib/utils";
 
 // ─── Brand palette ────────────────────────────────────────────────────────────
 const C = {
@@ -17,6 +18,14 @@ const C = {
   rose: "#E8D5D0",
   roseDark: "#C9A89E",
 } as const;
+
+// ─── Banner promocional ─────────────────────────────────────────────────────────
+const PROMO_ITEMS = [
+  { icon: Gift, title: "10% OFF na primeira compra" },
+  { icon: CreditCard, title: "Parcele em até 4x sem juros" },
+  { icon: Truck, title: "Envios para todo o Brasil" },
+  { icon: QrCode, title: "5% OFF no Pix" },
+] as const;
 
 export default function Catalog() {
   const [, setLocation] = useLocation();
@@ -39,6 +48,14 @@ export default function Catalog() {
 
   const [selected, setSelected] = useState<Product | null>(null);
   const [galleryIdx, setGalleryIdx] = useState(0);
+
+  // Banner promocional (popup em dropdown que surge após 1s)
+  const [promoVisible, setPromoVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setPromoVisible(true), 1000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -191,6 +208,61 @@ export default function Catalog() {
           <div className="w-[72px]" />
         </div>
       </header>
+
+      {/* ── BANNER PROMOCIONAL (dropdown) ───────────────────────────────── */}
+      <div
+        className="overflow-hidden"
+        style={{
+          maxHeight: promoVisible ? "240px" : "0px",
+          opacity: promoVisible ? 1 : 0,
+          transition: "max-height 1000ms ease-out, opacity 1000ms ease-out",
+        }}
+      >
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-4">
+          <div
+            className="relative"
+            style={{
+              backgroundColor: C.rose,
+              border: `1px solid ${C.bege3}`,
+              borderRadius: "1px",
+              transform: promoVisible ? "translateY(0)" : "translateY(-10px)",
+              transition: "transform 1000ms ease-out",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setPromoVisible(false)}
+              aria-label="Fechar banner"
+              className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center transition hover:opacity-50"
+              style={{ color: C.roseDark, background: "none", border: "none", cursor: "pointer" }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+
+            <div className="grid grid-cols-4">
+              {PROMO_ITEMS.map((item) => (
+                <div
+                  key={item.title}
+                  className="flex flex-col items-center justify-start gap-2 px-2 py-5 text-center"
+                >
+                  <item.icon
+                    className="h-5 w-5 sm:h-6 sm:w-6 shrink-0"
+                    strokeWidth={1.5}
+                    style={{ color: C.roseDark }}
+                  />
+                  <span
+                    className="text-[8px] sm:text-[10px] font-light tracking-[0.12em] uppercase leading-tight"
+                    style={{ color: C.brown }}
+                  >
+                    {item.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ── MAIN ────────────────────────────────────────────────────────── */}
       <main className="flex-1 px-4 sm:px-6 py-10 mx-auto w-full max-w-6xl">
@@ -779,7 +851,7 @@ export default function Catalog() {
                     className="text-xs font-light"
                     style={{ color: product.promocao ? C.roseDark : C.bege1 }}
                   >
-                    R$ {product.preco.toFixed(2).replace(".", ",")}
+                    R$ {formatPrice(product.preco)}
                   </p>
                 </div>
 
@@ -955,7 +1027,7 @@ export default function Catalog() {
                       fontFamily: "'Georgia', serif",
                     }}
                   >
-                    R$ {selected.preco.toFixed(2).replace(".", ",")}
+                    R$ {formatPrice(selected.preco)}
                   </span>
                 </div>
               </div>

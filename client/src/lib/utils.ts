@@ -18,6 +18,14 @@ export function formatDate(iso: string, withTime = false): string {
   return `${dateStr} às ${timeStr}`;
 }
 
+/** Formata um valor numérico como preço pt-BR (sem símbolo) — ex: 1890.9 → "1.890,90" */
+export function formatPrice(value: number): string {
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** Remove caracteres não numéricos de uma string */
 export function onlyNumbers(value: string): string {
   return value.replace(/\D/g, "");
