@@ -761,21 +761,15 @@ export default function Home() {
             </p>
 
             <p
-              className="text-white font-light text-xl sm:text-3xl leading-relaxed max-w-xl mb-3"
-              style={{
-                fontFamily: "'Big Caslon', 'Georgia', 'Times New Roman', serif",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              "Criar é um ato de atenção ao outro."
-            </p>
-
-            <p
               className="text-sm font-light leading-relaxed max-w-sm mb-8"
               style={{ color: "rgba(232,213,208,0.88)" }}
             >
-              No Joseph Atelier, cada peça nasce de uma intenção clara: vestir
-              com elegância, sem abrir mão da identidade.
+              Mais do que vestir, queremos inspirar histórias e despertar
+              sentimentos. Cada criação JOSEPH carrega sensibilidade, delicadeza
+              e a beleza das memórias que atravessam gerações. Porque existem
+              peças que vão além do tempo:{" "}
+              <span className="whitespace-nowrap">tornam-se</span> parte de quem
+              somos.
             </p>
 
             <button
@@ -788,7 +782,7 @@ export default function Home() {
                 cursor: "pointer",
               }}
             >
-              Explorar coleção <ArrowRight className="h-3 w-3" />
+              Descubra a coleção <ArrowRight className="h-3 w-3" />
             </button>
           </section>
 
@@ -809,18 +803,12 @@ export default function Home() {
                   Atendimento
                 </p>
 
-                <p
-                  className="font-light text-lg leading-snug mb-3"
-                  style={{
-                    color: C.brown,
-                    fontFamily: "'Big Caslon', 'Georgia', serif",
-                  }}
-                >
-                  Atendimento personalizado via WhatsApp.
-                </p>
-
                 <p className="text-sm font-light leading-relaxed" style={{ color: "#7E756F" }}>
-                  Tire dúvidas sobre peças, tamanhos e disponibilidade com nossa equipe.
+                  Para tornar sua experiência com a JOSEPH ainda mais especial,
+                  oferecemos um atendimento personalizado pelo WhatsApp. Nossa
+                  equipe está à disposição para apresentar nossos modelos,
+                  esclarecer dúvidas sobre tamanhos e disponibilidade e auxiliar
+                  você na realização do seu pedido.
                 </p>
               </div>
 
@@ -834,7 +822,7 @@ export default function Home() {
                   cursor: "pointer",
                 }}
               >
-                Falar conosco <ArrowRight className="h-3 w-3" />
+                Fale conosco <ArrowRight className="h-3 w-3" />
               </button>
             </div>
 
@@ -853,18 +841,9 @@ export default function Home() {
                   Catálogo
                 </p>
 
-                <p
-                  className="font-light text-lg leading-snug mb-3"
-                  style={{
-                    color: C.brown,
-                    fontFamily: "'Big Caslon', 'Georgia', serif",
-                  }}
-                >
-                  Explore a coleção completa.
-                </p>
-
                 <p className="text-sm font-light leading-relaxed" style={{ color: "#7B6E69" }}>
-                  Todas as peças com fotos, descrições e preços. Encontre a escolha certa para você.
+                  Conheça a coleção JOSEPH e descubra a delicadeza presente em
+                  cada detalhe.
                 </p>
               </div>
 
@@ -878,7 +857,7 @@ export default function Home() {
                   cursor: "pointer",
                 }}
               >
-                Ver catálogo <ArrowRight className="h-3 w-3" />
+                Descobrir a coleção <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           </section>
@@ -909,8 +888,9 @@ export default function Home() {
                   className="text-justify leading-relaxed max-w-sm"
                   style={{ color: "#7E756F" }}
                 >
-                  Estamos localizados em um espaço pensado para receber você
-                  com conforto e atenção. Venha conhecer nossas peças pessoalmente.
+                  Convidamos você a conhecer de perto o universo JOSEPH, explorar
+                  nossas peças e descobrir a riqueza dos tecidos, a delicadeza dos
+                  detalhes e a essência artesanal que torna cada peça especial.
                 </p>
 
                 <div
@@ -918,7 +898,7 @@ export default function Home() {
                   style={{ color: C.brown }}
                 >
                   <MapPin className="w-4 h-4" />
-                  Av. Sen. Area Leão, 2185
+                  Av. Sen. Area Leão, 2185, Torre 1
                 </div>
 
                 <a
@@ -928,7 +908,7 @@ export default function Home() {
                   className="mt-3 inline-flex items-center gap-2 text-[10px] tracking-[0.35em] uppercase"
                   style={{ color: C.brown }}
                 >
-                  Ver no mapa <ArrowRight className="w-3 h-3" />
+                  Venha nos visitar <ArrowRight className="w-3 h-3" />
                 </a>
               </div>
 
@@ -999,7 +979,7 @@ export default function Home() {
                 style={{ color: C.brown }}
               >
                 <MapPin className="w-4 h-4" />
-                Av. Sen. Area Leão, 2185
+                Av. Sen. Area Leão, 2185, Torre 1
               </a>
             </div>
           </div>
