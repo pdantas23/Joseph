@@ -26,8 +26,9 @@ export function faixaDePreco(product: Product): { min: number; max: number } {
 }
 
 export function descricaoEfetiva(product: Product, variacao?: ProductVariation | null): string {
-  const texto = variacao?.descricao?.trim() ? variacao.descricao : product.descricao;
-  return (texto ?? "").trim();
+  const texto = (variacao?.descricao?.trim() ? variacao.descricao : product.descricao) ?? "";
+  // Descrição igual ao nome (ex.: "Vestido Tricoline Acetinada") não repete na tela.
+  return texto.trim() === product.nome.trim() ? "" : texto.trim();
 }
 
 export function codigoEfetivo(product: Product, variacao?: ProductVariation | null): string | null {

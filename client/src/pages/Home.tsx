@@ -10,6 +10,8 @@ import WhatsAppIcon, { WHATSAPP_VERDE } from "@/components/WhatsAppIcon";
 import InstagramIcon from "@/components/InstagramIcon";
 import { numeroWhatsApp } from "@/lib/whatsapp";
 import { useAlgumOverlayAberto } from "@/contexts/OverlayContext";
+import { pecasDoBanner } from "@/features/catalog/vitrine";
+import { DESTAQUES, TOTAL_BANNER } from "@/config/vitrines";
 import {
   ArrowRight,
   ChevronLeft,
@@ -325,7 +327,8 @@ export default function Home() {
         const res = await carregarCatalogoPublico();
         const all = res.data;
 
-        const nextPromos = all.filter((p) => p.promocao);
+        // Promoções; sem nenhuma, as peças ativas (o banner nunca fica sem peça).
+        const nextPromos = pecasDoBanner(all, DESTAQUES.categorias, TOTAL_BANNER);
         const nextFeatured = all.slice(0, 4);
 
         const carouselImages =
@@ -439,8 +442,9 @@ export default function Home() {
               {p?.nome}
             </p>
 
-            {p?.descricao && (
-              <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-xs font-light">
+            {/* sem repetir o nome quando a descrição é igual a ele */}
+            {p?.descricao && p.descricao.trim() !== p.nome.trim() && (
+              <p className="text-white/80 text-xs sm:text-sm leading-relaxed max-w-xs font-light whitespace-pre-line line-clamp-3">
                 {p.descricao}
               </p>
             )}
@@ -685,21 +689,6 @@ export default function Home() {
 
           {/* Seções por categoria, em bento grid (config/vitrines.ts) */}
           <VitrinesBento />
-
-          <div className="flex justify-center -mt-6 sm:-mt-10">
-            <button
-              onClick={() => setLocation("/catalogo")}
-              className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.4em] uppercase transition hover:opacity-60"
-              style={{
-                color: C.brown,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              Ver todos os produtos <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
 
           {/* Brand statement */}
           <section

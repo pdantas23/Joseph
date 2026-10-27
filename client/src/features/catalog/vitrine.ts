@@ -81,3 +81,29 @@ export function selecionarDestaques(
   }
   return escolhidos.slice(0, total);
 }
+
+/**
+ * Completa uma lista até `minimo` com peças de `reserva` (sem repetir dentro
+ * da lista). Usado para o carrossel nunca ficar vazio quando o bento leva
+ * quase tudo: aí ele pode repetir peças do bento.
+ */
+export function completarAte(lista: Product[], reserva: Product[], minimo: number): Product[] {
+  const saida = [...lista];
+  for (const p of reserva) {
+    if (saida.length >= minimo) break;
+    if (!saida.some((x) => x.id === p.id)) saida.push(p);
+  }
+  return saida;
+}
+
+/**
+ * Peças do banner de slides do topo da Home: as em promoção; se nenhuma
+ * estiver em promoção, as peças ativas alternando categorias, da mais cara
+ * para a mais barata (pode repetir as das outras seções).
+ */
+export function pecasDoBanner(produtos: Product[], categorias: ProductCategory[], total: number): Product[] {
+  const ativos = produtos.filter((p) => p.ativo !== false);
+  const promos = ativos.filter((p) => p.promocao);
+  if (promos.length > 0) return promos;
+  return selecionarDestaques(ativos, [], new Set(), categorias, total);
+}

@@ -4,7 +4,7 @@ import { carregarCatalogoPublico } from "@/features/catalog/catalogApi";
 import { CATEGORY_LABELS, type Product } from "@/features/catalog/catalogTypes";
 import ProductCard from "@/components/ProductCard";
 import { faixaDePreco } from "@/features/catalog/variantUtils";
-import { selecionarDestaques, vitrinesVisiveis } from "@/features/catalog/vitrine";
+import { completarAte, selecionarDestaques, vitrinesVisiveis } from "@/features/catalog/vitrine";
 import { DESTAQUES, ITENS_POR_VITRINE, VITRINES } from "@/config/vitrines";
 import ProductModal from "@/features/catalog/components/ProductModal";
 import { C } from "@/lib/josephTheme";
@@ -33,7 +33,10 @@ export default function DestaquesCarousel() {
     const noBento = new Set(
       vitrinesVisiveis(todos, VITRINES, ITENS_POR_VITRINE).flatMap((s) => s.itens.map((p) => p.id))
     );
-    return selecionarDestaques(todos, DESTAQUES.slugs, noBento, DESTAQUES.categorias, DESTAQUES.total);
+    const semRepetir = selecionarDestaques(todos, DESTAQUES.slugs, noBento, DESTAQUES.categorias, DESTAQUES.total);
+    // Se o bento levou quase tudo, completa com peças dele: o carrossel nunca fica vazio.
+    const todasAsPecas = selecionarDestaques(todos, DESTAQUES.slugs, new Set(), DESTAQUES.categorias, DESTAQUES.total);
+    return completarAte(semRepetir, todasAsPecas, Math.min(DESTAQUES.minimo, todasAsPecas.length));
   }, [todos]);
 
   const updateScrollState = useCallback(() => {

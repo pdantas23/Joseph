@@ -69,6 +69,7 @@ describe("regra de preço da variação", () => {
     expect(codigoEfetivo(base, null)).toBe("JA-101");
     expect(descricaoEfetiva(base, v)).toBe("desc da variação");
     expect(descricaoEfetiva(base, variacao({}))).toBe("desc do produto");
+    expect(descricaoEfetiva({ ...base, descricao: "Conjunto linho 100% " }, null)).toBe("");
     expect(nomeComVariacao(base.nome, v.nome)).toBe("Conjunto linho 100% (M · Off-white)");
     expect(nomeComVariacao(base.nome, null)).toBe("Conjunto linho 100%");
     expect(galeria(base, v)).toEqual(["var.jpeg", "geral.jpeg"]);

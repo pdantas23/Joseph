@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Product, ProductVariation } from "./catalogTypes";
-import { maiorPreco, selecionarDestaques, selecionarVitrine, vitrinesVisiveis } from "./vitrine";
+import { completarAte, maiorPreco, pecasDoBanner, selecionarDestaques, selecionarVitrine, vitrinesVisiveis } from "./vitrine";
 import type { Vitrine } from "@/config/vitrines";
 
 const v = (id: string, preco: number | null = null): ProductVariation =>
@@ -43,5 +43,23 @@ describe("destaques do carrossel", () => {
   it("respeita o total e os slugs fixos", () => {
     expect(selecionarDestaques(hoje, ["c3"], new Set(), ["vestidos", "conjuntos"], 3).map((x) => x.id))
       .toEqual(["c3", "vest", "c6"]);
+  });
+});
+
+describe("nada vazio na Home", () => {
+  it("banner sem promoção usa as peças ativas (o banco de hoje não tem promoção)", () => {
+    expect(pecasDoBanner(hoje, ["vestidos", "conjuntos"], 4).map((x) => x.id)).toEqual(["vest", "c6", "c8", "c7"]);
+  });
+  it("banner com promoção mostra só as promoções", () => {
+    const comPromo = hoje.map((x) => (x.id === "c3" ? { ...x, promocao: true } : x));
+    expect(pecasDoBanner(comPromo, ["vestidos", "conjuntos"], 4).map((x) => x.id)).toEqual(["c3"]);
+  });
+  it("destaques completam com peças do bento quando sobra pouco", () => {
+    const so5 = hoje.filter((x) => x.categoria === "conjuntos").slice(0, 5);
+    const noBento = new Set(so5.map((x) => x.id));
+    const vazio = selecionarDestaques(so5, [], noBento, ["vestidos", "conjuntos"], 8);
+    expect(vazio).toHaveLength(0);
+    const cheio = completarAte(vazio, selecionarDestaques(so5, [], new Set(), ["vestidos", "conjuntos"], 8), 4);
+    expect(cheio).toHaveLength(4);
   });
 });

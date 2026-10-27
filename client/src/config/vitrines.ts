@@ -27,6 +27,13 @@ export const VITRINES: Vitrine[] = [
 export const ITENS_POR_VITRINE = 5;
 
 /**
+ * Banner de slides do topo: mostra as peças em promoção; sem nenhuma em
+ * promoção, mostra até TOTAL_BANNER peças ativas (pode repetir as das
+ * outras seções). Sem nenhuma peça, ficam os slides de texto.
+ */
+export const TOTAL_BANNER = 4;
+
+/**
  * Carrossel de destaques, logo abaixo de "Coleção atual".
  *
  * slugs: peças escolhidas à mão, na ordem. Vazio = automático.
@@ -37,5 +44,7 @@ export const ITENS_POR_VITRINE = 5;
 export const DESTAQUES = {
   slugs: [] as string[],
   total: 8,
+  /** Mínimo de cards; se faltar, repete peças do bento. */
+  minimo: 4,
   categorias: ["vestidos", "conjuntos", "blusas", "calças", "saias", "acessórios", "outros"] as ProductCategory[],
 };
