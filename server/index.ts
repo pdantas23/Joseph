@@ -52,7 +52,8 @@ app.use(cookieParser());
 app.use("/auth", authRouter);
 app.use("/api/products", catalogRouter);
 
-const PORT = 3001;
+// API_PORT só para rodar dois projetos em paralelo no dev; em produção fica 3001.
+const PORT = Number(process.env.API_PORT) || 3001;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend atualizado para Safari na porta ${PORT}`);
 });

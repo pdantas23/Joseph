@@ -248,7 +248,7 @@ export default function ProductForm({
               <ImagePlus className="h-4 w-4" />
               {uploading ? "Enviando..." : previewUrl ? "Trocar imagem" : "Selecionar imagem"}
             </label>
-            <p className="text-xs text-slate-400">JPG, PNG, WEBP — máx. 5 MB</p>
+            <p className="text-xs text-slate-400">JPG, PNG, WEBP (máx. 5 MB)</p>
             {uploadError && (
               <p className="text-xs text-red-600">{uploadError}</p>
             )}

@@ -19,11 +19,13 @@ export function formatDate(iso: string, withTime = false): string {
 }
 
 /** Formata um valor numérico como preço pt-BR (sem símbolo) — ex: 1890.9 → "1.890,90" */
+const PRECO_PT_BR = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export function formatPrice(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return PRECO_PT_BR.format(Number(value));
 }
 
 /** Remove caracteres não numéricos de uma string */

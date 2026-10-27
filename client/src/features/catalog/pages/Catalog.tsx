@@ -4,9 +4,13 @@ import { useLocation, useSearch } from "wouter";
 import { listProducts } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
 import { PRODUCT_CATEGORIES, CATEGORY_LABELS } from "@/features/catalog/catalogTypes";
-import { X, ChevronLeft, ChevronRight, ChevronDown, Search, SlidersHorizontal, Gift, CreditCard, Truck, QrCode } from "lucide-react";
+import { X, ChevronLeft, ChevronDown, Search, SlidersHorizontal, Gift, CreditCard, Truck, QrCode } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatPrice } from "@/lib/utils";
+import SiteNav from "@/components/SiteNav";
+import ProductModal from "@/features/catalog/components/ProductModal";
+import { FOCO_CARD, propsCardClicavel } from "@/lib/cardClicavel";
+import { useRegistrarOverlay } from "@/contexts/OverlayContext";
+import { faixaDePreco, formatarPreco, variacoesVisiveis } from "@/features/catalog/variantUtils";
 
 // ─── Brand palette ────────────────────────────────────────────────────────────
 const C = {
@@ -46,10 +50,10 @@ function PriceRangeSlider({
     <div className="w-full">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-light tabular-nums" style={{ color: C.brown }}>
-          R$ {formatPrice(lo)}
+          {formatarPreco(lo)}
         </span>
         <span className="text-xs font-light tabular-nums" style={{ color: C.brown }}>
-          {hi >= ceil ? "Sem limite" : `R$ ${formatPrice(hi)}`}
+          {hi >= ceil ? "Sem limite" : formatarPreco(hi)}
         </span>
       </div>
 
@@ -87,7 +91,10 @@ function PriceRangeSlider({
 export default function Catalog() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const produtoIdParam = new URLSearchParams(searchString).get("produto");
+  const params = new URLSearchParams(searchString);
+  const produtoIdParam = params.get("produto");
+  const variacaoParam = params.get("variacao");
+  const categoriaParam = params.get("categoria") ?? "";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -105,7 +112,13 @@ export default function Catalog() {
   const [categoriaOpen, setCategoriaOpen] = useState(false);
 
   const [selected, setSelected] = useState<Product | null>(null);
-  const [galleryIdx, setGalleryIdx] = useState(0);
+  useRegistrarOverlay(isMobileFiltersOpen); // o modal de filtros cobre a tela
+
+  // A barra do topo leva a /catalogo?categoria=...; o filtro acompanha a URL.
+  useEffect(() => {
+    const valida = (PRODUCT_CATEGORIES as readonly string[]).includes(categoriaParam);
+    setFilterCategoria(valida ? categoriaParam : "");
+  }, [categoriaParam]);
 
   // Banner promocional (popup em dropdown que surge após 1s)
   const [promoVisible, setPromoVisible] = useState(false);
@@ -137,24 +150,24 @@ export default function Catalog() {
   useEffect(() => {
     if (!produtoIdParam || products.length === 0) return;
 
-    const produto = products.find((p) => String(p.id) === produtoIdParam);
-    if (produto) {
-      setSelected(produto);
-      setGalleryIdx(0);
-    }
+    const produto = products.find((p) => String(p.id) === produtoIdParam || p.slug === produtoIdParam);
+    if (produto) setSelected(produto);
   }, [produtoIdParam, products]);
 
   function applyFilters(items: Product[]) {
     return items.filter((p) => {
       if (search.trim()) {
         const s = search.toLowerCase();
-        if (!p.nome.toLowerCase().includes(s)) return false;
+        const alvo = [p.nome, p.colecao, ...variacoesVisiveis(p).map((v) => v.nome)]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (!alvo.includes(s)) return false;
       }
 
       if (filterCategoria && p.categoria !== filterCategoria) return false;
       if (filterPromo && !p.promocao) return false;
-      if (filterPrecoMin && p.preco < parseFloat(filterPrecoMin)) return false;
-      if (filterPrecoMax && p.preco > parseFloat(filterPrecoMax)) return false;
+      const faixa = faixaDePreco(p);
+      if (filterPrecoMin && faixa.max < parseFloat(filterPrecoMin)) return false;
+      if (filterPrecoMax && faixa.min > parseFloat(filterPrecoMax)) return false;
 
       return true;
     });
@@ -164,7 +177,7 @@ export default function Catalog() {
 
   // Faixa de preço (slider): teto dinâmico baseado no produto mais caro
   const priceCeil = useMemo(() => {
-    const maxP = products.reduce((m, p) => Math.max(m, p.preco), 0);
+    const maxP = products.reduce((m, p) => Math.max(m, faixaDePreco(p).max), 0);
     if (maxP <= 0) return 1000;
     const step = maxP > 1000 ? 100 : 50;
     return Math.max(step, Math.ceil(maxP / step) * step);
@@ -180,53 +193,35 @@ export default function Catalog() {
     setFilterPrecoMax(hi >= priceCeil ? "" : String(hi));
   }
 
+  function setQuery(next: Record<string, string | null>) {
+    const q = new URLSearchParams(searchString);
+    for (const [k, v] of Object.entries(next)) {
+      if (v) q.set(k, v); else q.delete(k);
+    }
+    const qs = q.toString();
+    setLocation(qs ? `/catalogo?${qs}` : "/catalogo", { replace: true });
+  }
+
   function openModal(product: Product) {
     setSelected(product);
-    setGalleryIdx(0);
+    setQuery({ produto: product.slug ?? product.id, variacao: null });
   }
 
   function closeModal() {
     setSelected(null);
-    setGalleryIdx(0);
+    setQuery({ produto: null, variacao: null });
   }
 
-  const allImages = selected
-    ? [
-        ...(selected.imagem_url ? [selected.imagem_url] : []),
-        ...(selected.imagens ?? []).map((i) => i.url),
-      ]
-    : [];
-
-  function prevImg() {
-    setGalleryIdx((i) => (i === 0 ? allImages.length - 1 : i - 1));
-  }
-
-  function nextImg() {
-    setGalleryIdx((i) => (i === allImages.length - 1 ? 0 : i + 1));
-  }
-
+  // Bloqueia o scroll do fundo enquanto o modal de filtros estiver aberto
+  // (o modal do produto trava sozinho).
   useEffect(() => {
-    if (!selected) return;
-
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") closeModal();
-      if (e.key === "ArrowLeft") prevImg();
-      if (e.key === "ArrowRight") nextImg();
-    }
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selected, galleryIdx, allImages.length]);
-
-  // Bloqueia o scroll do fundo enquanto o modal de produto ou o de filtros estiver aberto
-  useEffect(() => {
-    if (!selected && !isMobileFiltersOpen) return;
+    if (!isMobileFiltersOpen) return;
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = original;
     };
-  }, [selected, isMobileFiltersOpen]);
+  }, [isMobileFiltersOpen]);
 
   // Fecha o dropdown de filtros (desktop) ao clicar fora dele
   useEffect(() => {
@@ -243,16 +238,8 @@ export default function Catalog() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [showFilters]);
 
-  function buildWhatsAppUrl(product: Product): string {
-    const phone = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) ?? "";
-    const number = phone.replace(/\D/g, "");
-
-    let message = `Olá! Tenho interesse na peça *${product.nome}*. Pode me passar mais informações?`;
-
-    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
-  }
-
   function clearFilters() {
+    if (categoriaParam) setQuery({ categoria: null });
     setFilterCategoria("");
     setFilterPromo(false);
     setFilterPrecoMin("");
@@ -275,9 +262,14 @@ export default function Catalog() {
         fontFamily: "'Fira Sans', 'Helvetica Neue', Arial, sans-serif",
       }}
     >
+      <SiteNav />
+
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
+      {/* A barra de categorias acima é que fica fixa; ao passar deste
+          cabeçalho, o logo aparece nela (data-nav-hero). */}
       <header
-        className="sticky top-0 z-30"
+        data-nav-hero
+        className="relative z-30"
         style={{
           backgroundColor: "rgba(242,242,242,0.95)",
           backdropFilter: "blur(12px)",
@@ -520,6 +512,7 @@ export default function Catalog() {
                                 type="button"
                                 onClick={() => {
                                   setFilterCategoria("");
+                                  setQuery({ categoria: null });
                                   setCategoriaOpen(false);
                                 }}
                                 className="w-full px-4 py-3 text-xs font-light text-left transition hover:opacity-60"
@@ -539,6 +532,7 @@ export default function Catalog() {
                                   type="button"
                                   onClick={() => {
                                     setFilterCategoria(cat);
+                                    setQuery({ categoria: cat });
                                     setCategoriaOpen(false);
                                   }}
                                   className="w-full px-4 py-3 text-xs font-light text-left transition hover:opacity-60"
@@ -677,6 +671,7 @@ export default function Catalog() {
                               type="button"
                               onClick={() => {
                                 setFilterCategoria("");
+                                setQuery({ categoria: null });
                                 setCategoriaOpen(false);
                               }}
                               className="w-full px-3 py-3 text-sm font-light text-left transition hover:opacity-60"
@@ -697,6 +692,7 @@ export default function Catalog() {
                                 type="button"
                                 onClick={() => {
                                   setFilterCategoria(cat);
+                                  setQuery({ categoria: cat });
                                   setCategoriaOpen(false);
                                 }}
                                 className="w-full px-3 py-3 text-sm font-light text-left transition hover:opacity-60"
@@ -802,11 +798,15 @@ export default function Catalog() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((product) => (
+            {filtered.map((product) => {
+              const opcoes = variacoesVisiveis(product).length;
+              const faixa = faixaDePreco(product);
+              return (
               <div
                 key={product.id}
-                onClick={() => openModal(product)}
-                className="group relative flex flex-col cursor-pointer"
+                data-testid="product-card"
+                {...propsCardClicavel(() => openModal(product), `Ver ${product.nome}`)}
+                className={`group relative flex flex-col cursor-pointer ${FOCO_CARD}`}
                 style={{ background: C.white }}
               >
                 {(product.imagens?.length ?? 0) > 0 && (
@@ -844,6 +844,7 @@ export default function Catalog() {
                     <img
                       src={product.imagem_url}
                       alt={product.nome}
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   ) : (
@@ -858,7 +859,7 @@ export default function Catalog() {
                   )}
                 </div>
 
-                <div className="p-3 border-t" style={{ borderColor: C.bege3 }}>
+                <div className="p-3 border-t flex flex-col flex-1" style={{ borderColor: C.bege3 }}>
                   <p
                     className="text-xs font-light leading-snug mb-1.5 line-clamp-2"
                     style={{ color: C.brown }}
@@ -875,12 +876,22 @@ export default function Catalog() {
                     </p>
                   )}
 
-                  <p
-                    className="text-xs font-light"
-                    style={{ color: product.promocao ? C.roseDark : C.bege1 }}
-                  >
-                    R$ {formatPrice(product.preco)}
-                  </p>
+                  <div className="mt-auto flex items-end justify-between gap-2">
+                    <p
+                      className="text-xs font-light"
+                      style={{ color: product.promocao ? C.roseDark : "#7E756F" }}
+                    >
+                      {faixa.min !== faixa.max && (
+                        <span className="block text-[9px]" style={{ color: C.bege1 }}>a partir de</span>
+                      )}
+                      {formatarPreco(faixa.min)}
+                    </p>
+                    {opcoes > 1 && (
+                      <span data-testid="card-options" className="shrink-0 text-[9px] font-light tracking-[0.04em]" style={{ color: "#7E756F" }}>
+                        {opcoes} opções
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div
@@ -888,7 +899,8 @@ export default function Catalog() {
                   style={{ backgroundColor: C.brown }}
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -903,192 +915,14 @@ export default function Catalog() {
         </p>
       </footer>
 
-      {/* ── MODAL ───────────────────────────────────────────────────────── */}
       {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-          onMouseDown={(e) => {
-            // Fecha apenas se o clique iniciou no próprio overlay (fora do conteúdo)
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
-          <div
-            className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white md:flex md:flex-row md:w-[92vw] md:max-w-[1040px] md:h-[88vh] md:overflow-hidden"
-            style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.2)" }}
-          >
-            <button
-              onClick={closeModal}
-              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center transition hover:opacity-50"
-              style={{
-                color: C.brown,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* ── Coluna esquerda: imagem ── */}
-            <div className="md:flex md:flex-col md:w-[58%] md:min-h-0">
-            <div
-              className="relative overflow-hidden group aspect-[4/3] md:aspect-auto md:flex-1 md:min-h-0"
-              style={{ backgroundColor: C.offwhite }}
-            >
-              {allImages.length > 0 ? (
-                <img
-                  src={allImages[galleryIdx]}
-                  alt={selected.nome}
-                  className="w-full h-full object-contain transition-opacity duration-200"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <span
-                    className="text-[10px] font-light tracking-widest uppercase"
-                    style={{ color: C.bege2 }}
-                  >
-                    Peça
-                  </span>
-                </div>
-              )}
-
-              {selected.promocao && (
-                <div
-                  className="absolute top-3 left-3 text-[9px] font-light tracking-widest uppercase"
-                  style={{
-                    color: C.roseDark,
-                    background: C.rose,
-                    padding: "2px 8px",
-                  }}
-                >
-                  Destaque
-                </div>
-              )}
-
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    onClick={prevImg}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center transition opacity-0 group-hover:opacity-100"
-                    style={{
-                      background: "rgba(255,255,255,0.88)",
-                      color: C.brown,
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    onClick={nextImg}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center transition opacity-0 group-hover:opacity-100"
-                    style={{
-                      background: "rgba(255,255,255,0.88)",
-                      color: C.brown,
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-
-                  <div
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] font-light"
-                    style={{
-                      color: C.white,
-                      background: "rgba(0,0,0,0.35)",
-                      padding: "1px 8px",
-                    }}
-                  >
-                    {galleryIdx + 1} / {allImages.length}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 md:shrink-0">
-                {allImages.map((url, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setGalleryIdx(i)}
-                    className="h-14 w-14 shrink-0 overflow-hidden transition"
-                    style={{
-                      border: `2px solid ${i === galleryIdx ? C.brown : "transparent"}`,
-                      cursor: "pointer",
-                      background: "none",
-                    }}
-                  >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-            </div>
-
-            {/* ── Coluna direita: detalhes ── */}
-            <div className="px-6 pt-5 pb-7 md:w-[42%] md:overflow-y-auto md:min-h-0">
-              <div className="flex items-start justify-between gap-4 mb-1">
-                <div className="flex-1">
-                  {selected.categoria && (
-                    <p
-                      className="text-[9px] tracking-[0.4em] uppercase font-light mb-2"
-                      style={{ color: C.bege1 }}
-                    >
-                      {CATEGORY_LABELS[selected.categoria]}
-                    </p>
-                  )}
-
-                  <h2
-                    className="text-lg font-light leading-tight"
-                    style={{ color: C.brown, fontFamily: "'Georgia', serif" }}
-                  >
-                    {selected.nome}
-                  </h2>
-                </div>
-
-              </div>
-
-              {selected.descricao && (
-                <p className="text-sm font-light leading-relaxed mt-3" style={{ color: C.bege1 }}>
-                  {selected.descricao}
-                </p>
-              )}
-
-              {/* Preço abaixo da descrição */}
-              <p
-                className="mt-4 text-xl font-light tabular-nums"
-                style={{
-                  color: selected.promocao ? C.roseDark : C.brown,
-                  fontFamily: "'Georgia', serif",
-                }}
-              >
-                R$ {formatPrice(selected.preco)}
-              </p>
-
-              <div className="my-5 h-px" style={{ backgroundColor: C.bege3 }} />
-
-              <a
-                href={buildWhatsAppUrl(selected)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2.5 py-3.5 text-[11px] font-medium tracking-[0.3em] uppercase transition hover:opacity-80"
-                style={{ backgroundColor: C.brown, color: C.white }}
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 shrink-0">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                </svg>
-                Solicitar informações
-              </a>
-
-              <p className="mt-2.5 text-center text-[10px] font-light" style={{ color: C.bege2 }}>
-                Você será direcionado ao WhatsApp.
-              </p>
-            </div>
-          </div>
-        </div>
+        <ProductModal
+          key={selected.id}
+          product={selected}
+          initialVariationId={variacaoParam}
+          onClose={closeModal}
+          onVariationChange={(id) => setQuery({ variacao: id })}
+        />
       )}
     </div>
   );

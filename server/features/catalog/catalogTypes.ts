@@ -1,5 +1,6 @@
 // ─── Categorias ───────────────────────────────────────────────────────────────
 
+// Mesma lista do CHECK de produtos_joseph.categoria no banco (conferido em 27/10/2026).
 export const PRODUCT_CATEGORIES = [
   "vestidos",
   "blusas",
@@ -17,9 +18,38 @@ export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 export type ProductImage = {
   id: string;
   produto_id: string;
+  variacao_id?: string | null;  // null = imagem do produto
   url: string;       // URL pública montada pelo service
   ordem: number;
 };
+
+// ─── Variação (ex.: tamanho e cor) ────────────────────────────────────────────
+
+export type ProductVariation = {
+  id: string;
+  produto_id: string;
+  nome: string;                   // ex.: "M · Off-white"
+  descricao: string | null;       // null = usa a do produto
+  preco: number | null;           // null = usa o do produto
+  codigo_fornecedor: string | null;
+  ordem: number;
+  ativo: boolean;
+  imagens: ProductImage[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type VariationPayload = {
+  nome: string;
+  descricao?: string | null;
+  preco?: number | null;
+  codigo_fornecedor?: string | null;
+  ordem?: number;
+  ativo?: boolean;
+  imagens_paths?: string[];
+};
+
+export type UpdateVariationPayload = Partial<VariationPayload>;
 
 // ─── Produto ──────────────────────────────────────────────────────────────────
 
@@ -29,7 +59,11 @@ export type Product = {
   descricao: string;
   preco: number;
   imagem_url: string | null;
-  imagens: ProductImage[];   // imagens adicionais
+  imagens: ProductImage[];   // imagens adicionais do produto (sem variação)
+  variacoes: ProductVariation[];
+  colecao: string | null;
+  slug: string | null;
+  codigo_fornecedor: string | null;
   categoria: ProductCategory | null;
   promocao: boolean;
   ativo: boolean;
@@ -48,6 +82,9 @@ export type CreateProductPayload = {
   categoria?: ProductCategory | null;
   promocao?: boolean;
   ativo?: boolean;
+  colecao?: string | null;
+  slug?: string | null;
+  codigo_fornecedor?: string | null;
 };
 
 export type UpdateProductPayload = Partial<CreateProductPayload>;

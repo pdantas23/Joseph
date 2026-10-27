@@ -5,6 +5,8 @@ import type {
   UpdateProductPayload,
   ListProductsParams,
   ListProductsResponse,
+  ProductVariation,
+  VariationPayload,
 } from "./catalogTypes";
 
 // ─── Upload de imagem ─────────────────────────────────────────────────────────
@@ -93,4 +95,59 @@ export async function deleteProduct(id: string): Promise<void> {
     const data = await response.json().catch(() => ({}));
     throw new Error((data as { message?: string }).message || "Erro ao excluir produto.");
   }
+}
+
+// ─── Variações (painel) ─────────────────────────────────────────────────────
+async function lerJson(response: Response, padrao: string) {
+  let data: any = null;
+  try { data = await response.json(); } catch { /* sem corpo */ }
+  if (!response.ok) throw new Error(data?.message || padrao);
+  return data;
+}
+
+export async function createVariation(produtoId: string, payload: VariationPayload): Promise<ProductVariation> {
+  const response = await fetch(`${API_BASE_URL}/api/products/${produtoId}/variacoes`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return lerJson(response, "Erro ao criar variação.");
+}
+
+export async function updateVariation(
+  produtoId: string,
+  variacaoId: string,
+  payload: Partial<VariationPayload>
+): Promise<ProductVariation> {
+  const response = await fetch(`${API_BASE_URL}/api/products/${produtoId}/variacoes/${variacaoId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return lerJson(response, "Erro ao atualizar variação.");
+}
+
+export async function deleteVariation(produtoId: string, variacaoId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/products/${produtoId}/variacoes/${variacaoId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await lerJson(response, "Erro ao excluir variação.");
+}
+
+// ─── Catálogo público compartilhado ─────────────────────────────────────────
+// A Home tem várias seções lendo os mesmos produtos ativos: uma requisição só
+// por carregamento de página. Em erro, a próxima chamada tenta de novo.
+let catalogoPublico: Promise<ListProductsResponse> | null = null;
+
+export function carregarCatalogoPublico(): Promise<ListProductsResponse> {
+  if (!catalogoPublico) {
+    catalogoPublico = listProducts({ ativo: true }).catch((err) => {
+      catalogoPublico = null;
+      throw err;
+    });
+  }
+  return catalogoPublico;
 }

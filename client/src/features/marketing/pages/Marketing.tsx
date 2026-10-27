@@ -29,11 +29,11 @@ function buildProductLink(productId: string): string {
 function buildWhatsAppBlast(products: Product[]): string {
   const number = (WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
   const destaques = products.filter((p) => p.promocao);
-  let text = "✨ *Joseph Atelier — Novidades da coleção*\n\n";
+  let text = "✨ *Joseph Atelier: novidades da coleção*\n\n";
   if (destaques.length > 0) {
     text += "🌸 *Peças em destaque:*\n";
     for (const p of destaques.slice(0, 5)) {
-      text += `• ${p.nome} — R$ ${formatPrice(p.preco)}\n`;
+      text += `• ${p.nome}: R$ ${formatPrice(p.preco)}\n`;
     }
     text += "\n";
   }

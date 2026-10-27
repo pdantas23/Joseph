@@ -1,19 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { listProducts } from "@/features/catalog/catalogApi";
+import { carregarCatalogoPublico } from "@/features/catalog/catalogApi";
 import type { Product } from "@/features/catalog/catalogTypes";
 import { formatPrice } from "@/lib/utils";
+import SiteNav, { ALTURA_NAV } from "@/components/SiteNav";
+import DestaquesCarousel from "@/features/catalog/components/DestaquesCarousel";
+import VitrinesBento from "@/features/catalog/components/VitrinesBento";
+import WhatsAppIcon, { WHATSAPP_VERDE } from "@/components/WhatsAppIcon";
+import InstagramIcon from "@/components/InstagramIcon";
+import { numeroWhatsApp } from "@/lib/whatsapp";
+import { useAlgumOverlayAberto } from "@/contexts/OverlayContext";
 import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  Instagram,
-  Phone,
   MapPin,
-  MessageCircle,
 } from "lucide-react";
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
+// Mesmo número de antes (VITE_WHATSAPP_NUMBER), com o valor de reserva do site publicado.
+const WHATSAPP_NUMBER = numeroWhatsApp();
 
 // ─── Brand palette ────────────────────────────────────────────────────────────
 const C = {
@@ -294,7 +299,7 @@ const FALLBACK_SLIDES = [
   },
   {
     headline: "O cuidado\nestá no corte.",
-    sub: "Joseph Atelier — onde o refinamento encontra o conforto.",
+    sub: "Joseph Atelier, onde o refinamento encontra o conforto.",
     bg: `linear-gradient(135deg, ${C.warmSurface} 0%, ${C.warmBeige} 100%)`,
     accent: C.brown,
     cta: "Conhecer a marca",
@@ -307,7 +312,6 @@ export default function Home() {
   const [, setLocation] = useLocation();
 
   const [promos, setPromos] = useState<Product[]>([]);
-  const [featured, setFeatured] = useState<Product[]>([]);
   const [homeReady, setHomeReady] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
@@ -318,7 +322,7 @@ export default function Home() {
 
     async function loadHome() {
       try {
-        const res = await listProducts({ ativo: true });
+        const res = await carregarCatalogoPublico();
         const all = res.data;
 
         const nextPromos = all.filter((p) => p.promocao);
@@ -338,13 +342,11 @@ export default function Home() {
         if (!active) return;
 
         setPromos(nextPromos);
-        setFeatured(nextFeatured);
         setHomeReady(true);
       } catch {
         if (!active) return;
 
         setPromos([]);
-        setFeatured([]);
         setHomeReady(true);
       }
     }
@@ -358,6 +360,8 @@ export default function Home() {
 
   const hasPromos = promos.length > 0;
   const showLoadingOverlay = !loaded;
+  // Some quando o modal do produto, a sacola ou outro diálogo está aberto.
+  const esconderWhatsApp = useAlgumOverlayAberto();
 
   function goWhatsApp() {
     const WHATSAPP_MESSAGE = encodeURIComponent(
@@ -565,12 +569,18 @@ export default function Home() {
           fontFamily: "'Fira Sans', 'Helvetica Neue', Arial, sans-serif",
         }}
       >
+        <SiteNav sobreHero />
+
         {/* ── HERO ─────────────────────────────────────────────────────────── */}
+        {/* O hero sobe por baixo da barra (margem negativa), para a barra
+            ficar por cima do fundo do hero, acima da logo. */}
         <header
-          className="w-full flex flex-col items-center py-5 sm:py-5 px-6"
+          data-nav-hero
+          className="w-full flex flex-col items-center pb-5 pt-[calc(1.25rem+44px)] px-6"
           style={{
             background: `linear-gradient(180deg, ${C.white} 0%, ${C.warmSurface} 100%)`,
             borderBottom: `1px solid ${C.bege3}`,
+            marginTop: -ALTURA_NAV,
           }}
         >
           <img
@@ -600,7 +610,7 @@ export default function Home() {
             style={{ color: "#7D746E" }}
           >
             Peças exclusivas pensadas para a mulher que escolhe com intenção.
-            Cada detalhe, cada costura — um gesto de cuidado.
+            Cada detalhe, cada costura: um gesto de cuidado.
           </p>
 
           <div className="flex flex-row items-center gap-2 sm:gap-6 justify-center">
@@ -670,84 +680,30 @@ export default function Home() {
             <div className="flex-1 h-px" style={{ backgroundColor: C.warmBeige2 }} />
           </div>
 
-          {/* Produtos em destaque */}
-          {featured.length > 0 && (
-            <section>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
-                {featured.map((product) => (
-                  <button
-                    key={product.id}
-                    onClick={() => setLocation(`/catalogo?produto=${product.id}`)}
-                    className="group flex flex-col text-left"
-                    style={{ background: "none", border: "none", cursor: "pointer" }}
-                  >
-                    <div
-                      className="w-full mb-3 rounded-[18px] overflow-hidden"
-                      style={{
-                        aspectRatio: "3/4",
-                        background: `linear-gradient(180deg, ${C.warmSurface} 0%, ${C.warmBeige} 100%)`,
-                        boxShadow: "0 10px 28px rgba(51,51,51,0.06)",
-                      }}
-                    >
-                      {product.imagem_url ? (
-                        <img
-                          src={product.imagem_url}
-                          alt={product.nome}
-                          className="block w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span
-                            className="text-[10px] font-light tracking-widest uppercase"
-                            style={{ color: C.roseDark }}
-                          >
-                            Peça
-                          </span>
-                        </div>
-                      )}
-                    </div>
+          {/* Destaques (config/vitrines.ts), sem repetir o bento */}
+          <DestaquesCarousel />
 
-                    <p className="text-xs font-light leading-snug mb-1" style={{ color: C.brown }}>
-                      {product.nome}
-                    </p>
+          {/* Seções por categoria, em bento grid (config/vitrines.ts) */}
+          <VitrinesBento />
 
-                    <p
-                      className="text-xs font-light"
-                      style={{ color: product.promocao ? C.roseDark : "#8A817B" }}
-                    >
-                      R$ {formatPrice(product.preco)}
-                      {product.promocao && (
-                        <span
-                          className="ml-1 text-[9px] tracking-widest uppercase"
-                          style={{ color: C.roseDark }}
-                        >
-                          · Destaque
-                        </span>
-                      )}
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex justify-center mt-10">
-                <button
-                  onClick={() => setLocation("/catalogo")}
-                  className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.4em] uppercase transition hover:opacity-60"
-                  style={{
-                    color: C.brown,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Ver todos os produtos <ArrowRight className="h-3 w-3" />
-                </button>
-              </div>
-            </section>
-          )}
+          <div className="flex justify-center -mt-6 sm:-mt-10">
+            <button
+              onClick={() => setLocation("/catalogo")}
+              className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.4em] uppercase transition hover:opacity-60"
+              style={{
+                color: C.brown,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Ver todos os produtos <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
 
           {/* Brand statement */}
           <section
+            data-fundo-escuro
             className="flex flex-col items-center text-center py-16 px-6 rounded-[24px]"
             style={{
               background: `linear-gradient(135deg, ${C.brown} 0%, #4C3F3B 100%)`,
@@ -952,11 +908,13 @@ export default function Home() {
               />
 
               <a
-                href="tel:+5589999761436"
-                className="flex items-center gap-2 text-[11px] font-light tracking-wider hover:opacity-60"
+                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[11px] font-light tracking-wider hover:opacity-60 [&>svg]:text-[#25D366]"
                 style={{ color: C.brown }}
               >
-                <Phone className="w-4 h-4" />
+                <WhatsAppIcon className="w-4 h-4" />
                 (89) 99976-1436
               </a>
 
@@ -967,7 +925,7 @@ export default function Home() {
                 className="flex items-center gap-1 text-[11px] font-light tracking-wider hover:opacity-60"
                 style={{ color: C.brown }}
               >
-                <Instagram className="w-4 h-4" />
+                <InstagramIcon className="w-4 h-4" />
                 @josephatelier
               </a>
 
@@ -993,11 +951,19 @@ export default function Home() {
 
         <button
           onClick={goWhatsApp}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition hover:scale-105 cursor-pointer"
-          style={{ backgroundColor: "#25D366", color: "white" }}
+          data-testid="whatsapp-fab"
+          aria-hidden={esconderWhatsApp || undefined}
+          tabIndex={esconderWhatsApp ? -1 : undefined}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-[opacity,transform] duration-200 hover:scale-105 cursor-pointer motion-reduce:transition-none"
+          style={{
+            opacity: esconderWhatsApp ? 0 : 1,
+            pointerEvents: esconderWhatsApp ? "none" : "auto",
+            backgroundColor: WHATSAPP_VERDE,
+            color: "white",
+          }}
           aria-label="WhatsApp"
         >
-          <MessageCircle className="w-6 h-6" />
+          <WhatsAppIcon className="w-7 h-7" />
         </button>
       </div>
     </>

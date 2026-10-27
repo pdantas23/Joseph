@@ -8,7 +8,9 @@ import {
   uploadProductImage,
   deleteProductImage,
 } from "@/features/catalog/catalogApi";
-import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Star, CheckCircle2, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, X, ImagePlus, Loader2, Star, CheckCircle2, ChevronDown, Layers } from "lucide-react";
+import VariationsManager from "@/features/comercial/components/VariationsManager";
+import { useRegistrarOverlay } from "@/contexts/OverlayContext";
 import type { Product, CreateProductPayload } from "@/features/catalog/catalogTypes";
 import { formatPrice } from "@/lib/utils";
 import { PRODUCT_CATEGORIES, CATEGORY_LABELS } from "@/features/catalog/catalogTypes";
@@ -44,10 +46,13 @@ type FormState = {
   categoria: (typeof PRODUCT_CATEGORIES)[number] | null;
   promocao: boolean;
   ativo: boolean;
+  colecao: string;
+  codigo_fornecedor: string;
 };
 
 const EMPTY_FORM: FormState = {
   nome: "", descricao: "", preco: "", categoria: null, promocao: false, ativo: true,
+  colecao: "", codigo_fornecedor: "",
 };
 
 function makeId() { return Math.random().toString(36).slice(2); }
@@ -71,6 +76,9 @@ export default function Comercial() {
   const [formLoading, setFormLoading]         = useState(false);
   const [formError, setFormError]             = useState("");
   const [removingImageId, setRemovingImageId] = useState<string | null>(null);
+
+  const [variacoesDe, setVariacoesDe] = useState<Product | null>(null);
+  useRegistrarOverlay(modalOpen);
 
   const [form, setForm]         = useState<FormState>(EMPTY_FORM);
   const [images, setImages]     = useState<UploadedImage[]>([]);
@@ -142,7 +150,8 @@ export default function Comercial() {
   function openEdit(product: Product) {
     setEditingProduct(product); setFormError("");
     setForm({ nome: product.nome, descricao: product.descricao, preco: String(product.preco),
-               categoria: product.categoria ?? null, promocao: product.promocao, ativo: product.ativo });
+               categoria: product.categoria ?? null, promocao: product.promocao, ativo: product.ativo,
+               colecao: product.colecao ?? "", codigo_fornecedor: product.codigo_fornecedor ?? "" });
     const list: UploadedImage[] = [];
     if (product.imagem_url)
       list.push({ id: makeId(), path: extractPath(product.imagem_url), previewUrl: product.imagem_url, uploading: false, error: "", isNew: false });
@@ -243,6 +252,10 @@ export default function Comercial() {
       categoria: form.categoria,
       promocao: form.promocao,
       ativo: form.ativo,
+      // Campos da migration 003: vazios não são enviados (sem a migration a API ignora).
+      ...(form.colecao.trim() || editingProduct?.colecao ? { colecao: form.colecao.trim() || null } : {}),
+      ...(form.codigo_fornecedor.trim() || editingProduct?.codigo_fornecedor
+        ? { codigo_fornecedor: form.codigo_fornecedor.trim() || null } : {}),
     };
 
     try {
@@ -400,6 +413,11 @@ export default function Comercial() {
                     </div>
                     <p className="text-sm font-light mb-0.5" style={{ color: C.brown }}>
                       R$ {formatPrice(product.preco)}
+                      {(product.variacoes?.length ?? 0) > 0 && (
+                        <span className="ml-2 text-[10px]" style={{ color: C.bege1 }}>
+                          {product.variacoes!.length} variaç{product.variacoes!.length === 1 ? "ão" : "ões"}
+                        </span>
+                      )}
                     </p>
                     {product.categoria && (
                       <p className="text-[11px] font-light tracking-wider uppercase" style={{ color: C.bege1 }}>
@@ -414,6 +432,12 @@ export default function Comercial() {
                       style={{ color: C.brown, border: `1px solid ${C.bege3}`, background: "none", cursor: "pointer", borderRadius: "1px" }}>
                       <Pencil className="h-3.5 w-3.5" />
                       Editar
+                    </button>
+                    <button type="button" onClick={() => setVariacoesDe(product)}
+                      className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-light tracking-[0.25em] uppercase transition hover:opacity-60"
+                      style={{ color: C.brown, border: `1px solid ${C.bege3}`, background: "none", cursor: "pointer", borderRadius: "1px" }}>
+                      <Layers className="h-3.5 w-3.5" />
+                      Variações
                     </button>
                     <button type="button" onClick={() => handleDeleteProduct(product)}
                       className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 text-[11px] font-light tracking-[0.25em] uppercase transition hover:opacity-60"
@@ -432,6 +456,16 @@ export default function Comercial() {
           {filtered.length} peça{filtered.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      {variacoesDe && (
+        <VariationsManager
+          product={variacoesDe}
+          onClose={() => setVariacoesDe(null)}
+          onChange={(variacoes) => {
+            setProducts((prev) => prev.map((p) => (p.id === variacoesDe.id ? { ...p, variacoes } : p)));
+          }}
+        />
+      )}
 
       {/* ── MODAL ───────────────────────────────────────────────────────────── */}
       {modalOpen && (
@@ -564,7 +598,7 @@ export default function Comercial() {
                       </div>
                     </div>
                     <p className="mt-2 text-[10px] font-light" style={{ color: C.bege2 }}>
-                      JPG, PNG, WEBP — máx. 5 MB por imagem
+                      JPG, PNG, WEBP (máx. 5 MB por imagem)
                     </p>
                   </div>
                 </div>
@@ -587,6 +621,26 @@ export default function Comercial() {
                     style={{ border: `1px solid ${C.bege3}`, backgroundColor: C.offwhite, color: C.brown, borderRadius: "1px" }}
                     onFocus={(e) => (e.target.style.borderColor = C.brown)}
                     onBlur={(e) => (e.target.style.borderColor = C.bege3)} />
+                </div>
+
+                {/* Coleção + Código */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {([
+                    ["colecao", "Coleção", "Ex: Verão 2027"],
+                    ["codigo_fornecedor", "Código (referência)", "Ex: JA-101"],
+                  ] as const).map(([key, label, ph]) => (
+                    <div key={key}>
+                      <label className="block text-[9px] tracking-[0.35em] uppercase font-light mb-2" style={{ color: C.bege1 }}>
+                        {label}
+                      </label>
+                      <input type="text" value={form[key]} onChange={(e) => setField(key, e.target.value)}
+                        placeholder={ph}
+                        className="w-full py-2.5 px-3 text-sm font-light outline-none transition"
+                        style={{ border: `1px solid ${C.bege3}`, backgroundColor: C.offwhite, color: C.brown, borderRadius: "1px" }}
+                        onFocus={(e) => (e.target.style.borderColor = C.brown)}
+                        onBlur={(e) => (e.target.style.borderColor = C.bege3)} />
+                    </div>
+                  ))}
                 </div>
 
                 {/* Descrição */}
