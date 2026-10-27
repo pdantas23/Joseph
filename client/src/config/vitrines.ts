@@ -1,10 +1,15 @@
 /**
- * Seções em bento grid da página inicial (depois dos destaques).
+ * Seções por categoria da página inicial (depois dos destaques).
  * Edite aqui. A ordem do array é a ordem na página.
  *
- * Hoje há só uma: Conjuntos (8 das 9 peças). Vestidos tem 1 peça, não
- * enche um bento. Uma seção só aparece se a categoria tiver pelo menos
- * ITENS_POR_VITRINE peças; senão as peças voltam para os destaques.
+ * O layout se adapta à quantidade de peças da categoria:
+ *   1 peça           -> bloco de destaque (foto de um lado, nome, preço e
+ *                       botão do outro; empilhado no celular);
+ *   2 a 4 peças      -> grade simples de cards do mesmo tamanho;
+ *   ITENS_POR_VITRINE ou mais -> bento (1 grande + 4 pequenas).
+ *
+ * minimo: quantas peças a categoria precisa ter para a seção aparecer.
+ *         Abaixo disso a seção some e as peças voltam para os destaques.
  *
  * slugs: peças escolhidas à mão, na ordem (slug ou id). A 1ª vira o bloco
  *        grande. Vazio = automático, da mais cara para a mais barata.
@@ -17,10 +22,13 @@ export type Vitrine = {
   titulo: string;
   linkTexto: string;   // link do fim da seção
   slugs: string[];
+  minimo: number;
 };
 
 export const VITRINES: Vitrine[] = [
-  { categoria: "conjuntos", rotulo: "Coleção", titulo: "Conjuntos", linkTexto: "Ver todos os conjuntos", slugs: [] },
+  { categoria: "conjuntos", rotulo: "Coleção", titulo: "Conjuntos", linkTexto: "Ver todos os conjuntos", slugs: [], minimo: 5 },
+  // Aparece com qualquer quantidade (hoje há 1 vestido) e cresce sozinha.
+  { categoria: "vestidos",  rotulo: "Coleção", titulo: "Vestidos",  linkTexto: "Ver todos os vestidos",  slugs: [], minimo: 1 },
 ];
 
 /** Peças por bento: 1 grande + 4 pequenas. */
@@ -44,7 +52,11 @@ export const TOTAL_BANNER = 4;
 export const DESTAQUES = {
   slugs: [] as string[],
   total: 8,
-  /** Mínimo de cards; se faltar, repete peças do bento. */
-  minimo: 4,
+  /**
+   * Mínimo de cards; se faltar, completa com peças do bento (repetindo).
+   * 3 porque hoje sobram 3 peças fora das seções: assim nada se repete.
+   * Com menos cards do que cabem na tela, eles ficam centralizados.
+   */
+  minimo: 3,
   categorias: ["vestidos", "conjuntos", "blusas", "calças", "saias", "acessórios", "outros"] as ProductCategory[],
 };

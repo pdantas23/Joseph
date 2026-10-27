@@ -30,13 +30,15 @@ export default function DestaquesCarousel() {
   }, []);
 
   const products = useMemo(() => {
-    const noBento = new Set(
-      vitrinesVisiveis(todos, VITRINES, ITENS_POR_VITRINE).flatMap((s) => s.itens.map((p) => p.id))
-    );
-    const semRepetir = selecionarDestaques(todos, DESTAQUES.slugs, noBento, DESTAQUES.categorias, DESTAQUES.total);
-    // Se o bento levou quase tudo, completa com peças dele: o carrossel nunca fica vazio.
+    const secoes = vitrinesVisiveis(todos, VITRINES, ITENS_POR_VITRINE);
+    const nasSecoes = new Set(secoes.flatMap((s) => s.itens.map((p) => p.id)));
+    const semRepetir = selecionarDestaques(todos, DESTAQUES.slugs, nasSecoes, DESTAQUES.categorias, DESTAQUES.total);
+    // Se as seções levaram quase tudo, completa repetindo peças do bento
+    // (não as das seções pequenas, que já aparecem em destaque): nunca vazio.
+    const foraDoBento = new Set(secoes.filter((s) => s.layout !== "bento").flatMap((s) => s.itens.map((p) => p.id)));
     const todasAsPecas = selecionarDestaques(todos, DESTAQUES.slugs, new Set(), DESTAQUES.categorias, DESTAQUES.total);
-    return completarAte(semRepetir, todasAsPecas, Math.min(DESTAQUES.minimo, todasAsPecas.length));
+    const reserva = [...todasAsPecas.filter((p) => !foraDoBento.has(p.id)), ...todasAsPecas];
+    return completarAte(semRepetir, reserva, Math.min(DESTAQUES.minimo, todasAsPecas.length));
   }, [todos]);
 
   const updateScrollState = useCallback(() => {
@@ -104,7 +106,7 @@ export default function DestaquesCarousel() {
         <div
           ref={trackRef}
           onScroll={updateScrollState}
-          className="-my-3 flex min-w-0 flex-1 overflow-x-auto scroll-smooth pb-6 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className={`-my-3 flex min-w-0 flex-1 overflow-x-auto scroll-smooth pb-6 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${temSetas ? "" : "justify-center"}`}
           style={{ scrollSnapType: "x mandatory" }}
         >
           {products.map((product) => {

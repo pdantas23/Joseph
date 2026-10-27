@@ -40,15 +40,30 @@ export function selecionarVitrine(
   return [...escolhidos, ...resto].slice(0, total);
 }
 
-/** Seções em bento que aparecem: só as que enchem o bento inteiro. */
+export type LayoutVitrine = "destaque" | "grade" | "bento";
+
+/** 1 peça: destaque; 2 até (bento - 1): grade; bento ou mais: bento. */
+export function layoutDaVitrine(quantidade: number, itensDoBento: number): LayoutVitrine {
+  if (quantidade >= itensDoBento) return "bento";
+  if (quantidade <= 1) return "destaque";
+  return "grade";
+}
+
+/**
+ * Seções que aparecem: as categorias com pelo menos `vitrine.minimo` peças
+ * (nunca com 0). Cada uma leva no máximo `itensDoBento` peças.
+ */
 export function vitrinesVisiveis(
   produtos: Product[],
   vitrines: Vitrine[],
-  total: number
-): { vitrine: Vitrine; itens: Product[] }[] {
+  itensDoBento: number
+): { vitrine: Vitrine; itens: Product[]; layout: LayoutVitrine }[] {
   return vitrines
-    .map((vitrine) => ({ vitrine, itens: selecionarVitrine(produtos, vitrine.categoria, vitrine.slugs, total) }))
-    .filter((s) => s.itens.length >= total);
+    .map((vitrine) => {
+      const itens = selecionarVitrine(produtos, vitrine.categoria, vitrine.slugs, itensDoBento);
+      return { vitrine, itens, layout: layoutDaVitrine(itens.length, itensDoBento) };
+    })
+    .filter((s) => s.itens.length > 0 && s.itens.length >= Math.max(1, s.vitrine.minimo));
 }
 
 /**
